@@ -875,15 +875,14 @@
                 },
 
                 confirmDeleteBusiness(id) {
-                    this.deleteAction = () => {
+                    if (confirm('Delete this business and all its books?')) {
                         this.businesses = this.businesses.filter(b => b.id !== id);
                         if (this.activeBusinessId === id) {
                             this.activeBusinessId = this.businesses.length > 0 ? this.businesses[0].id : null;
                             this.activeBookId = null;
                         }
                         this.save();
-                    };
-                    this.showPasswordConfirm = true;
+                    }
                 },
 
                 startEditingBusiness(id, name) {
@@ -923,7 +922,7 @@
                 },
 
                 confirmDeleteBook(id) {
-                    this.deleteAction = () => {
+                    if (confirm('Delete this book and all its transactions?')) {
                         const business = this.activeBusiness;
                         if (business) {
                             business.books = business.books.filter(b => b.id !== id);
@@ -932,8 +931,7 @@
                             }
                             this.save();
                         }
-                    };
-                    this.showPasswordConfirm = true;
+                    }
                 },
 
                 startEditingBook(id, name) {
