@@ -1020,21 +1020,42 @@
                 async executeDelete() {
                     try {
                         this.deleteError = '';
-                        const credential = firebase.auth.EmailAuthProvider.credential(
-                            this.user.email,
-                            this.confirmPassword
-                        );
-                        await this.user.reauthenticateWithCredential(credential);
                         
-                        if (this.deleteAction) {
-                            this.deleteAction();
+                        // Get the current user from Firebase
+                        const currentUser = auth.currentUser;
+                        if (!currentUser) {
+                            this.deleteError = 'No user logged in';
+                            return;
                         }
                         
+                        // Create credential
+                        const credential = firebase.auth.EmailAuthProvider.credential(
+                            currentUser.email,
+                            this.confirmPassword
+                        );
+                        
+                        // Re-authenticate
+                        await currentUser.reauthenticateWithCredential(credential);
+                        
+                        // If successful, execute the delete action
+                        if (this.deleteAction) {
+                            this.deleteAction();
+                            this.deleteAction = null;
+                        }
+                        
+                        // Close modal and reset
                         this.showPasswordConfirm = false;
                         this.confirmPassword = '';
-                        this.deleteAction = null;
+                        this.deleteError = '';
                     } catch (error) {
-                        this.deleteError = 'Incorrect password';
+                        console.error('Delete error:', error);
+                        if (error.code === 'auth/wrong-password') {
+                            this.deleteError = 'Incorrect password';
+                        } else if (error.code === 'auth/too-many-requests') {
+                            this.deleteError = 'Too many attempts. Try again later.';
+                        } else {
+                            this.deleteError = 'Authentication failed. Please try again.';
+                        }
                     }
                 },
 
