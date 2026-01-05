@@ -61,7 +61,7 @@
             <div x-show="authMode === 'reset'">
                 <h2 class="text-xl font-semibold mb-4">Reset Password</h2>
                 <input type="email" x-model="authEmail" placeholder="Email" class="w-full border border-gray-300 rounded px-3 py-2 mb-3 outline-none focus:ring-2 focus:ring-blue-500">
-                <button @click="resetPassword()" class="w-full bg-orange-600 text-white py-2 rounded font-medium hover:bg-orange-700 mb-3">Send Reset Email</button>
+                <button @click="resetPasswordEmail()" class="w-full bg-orange-600 text-white py-2 rounded font-medium hover:bg-orange-700 mb-3">Send Reset Email</button>
                 <div class="text-sm text-center">
                     <a @click="authMode = 'login'" class="text-blue-600 cursor-pointer hover:underline">Back to Login</a>
                 </div>
@@ -110,7 +110,13 @@
                     </div>
                     <div class="dropdown-content">
                         <div class="px-4 py-2 border-b text-sm text-gray-600" x-text="user ? user.email : ''"></div>
-                        <div @click="logout()" class="dropdown-item text-red-600">
+                        <div @click="showChangePasswordModal = true" class="dropdown-item">
+                            <i class="fas fa-key mr-2"></i> Change Password
+                        </div>
+                        <div @click="showDeleteAccountModal = true" class="dropdown-item text-red-600">
+                            <i class="fas fa-user-times mr-2"></i> Delete Account
+                        </div>
+                        <div @click="logout()" class="dropdown-item">
                             <i class="fas fa-sign-out-alt mr-2"></i> Logout
                         </div>
                     </div>
@@ -245,6 +251,16 @@
                             <span class="font-bold" :class="activeBookSummary.balance >= 0 ? 'text-green-600' : 'text-red-600'" x-text="formatCurrency(activeBookSummary.balance)"></span>
                         </div>
                     </div>
+                </div>
+
+                <div class="mt-4 px-6 pt-4 border-t border-gray-200">
+                    <button @click="showTrashModal = true" class="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-trash text-gray-600"></i>
+                            <span class="text-sm font-medium text-gray-700">Trash</span>
+                        </div>
+                        <span class="text-xs bg-gray-200 px-2 py-1 rounded-full" x-text="trashCount"></span>
+                    </button>
                 </div>
             </aside>
 
@@ -420,27 +436,6 @@
         </div>
     </div>
 
-    <!-- Password Confirm Modal -->
-    <div x-show="showPasswordConfirm" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-[110]" @click.self="showPasswordConfirm = false">
-        <div class="bg-white rounded-lg shadow-2xl w-96">
-            <div class="bg-red-100 px-4 py-3 flex justify-between items-center">
-                <h3 class="font-medium text-red-700">Confirm Deletion</h3>
-                <button @click="showPasswordConfirm = false"><i class="fas fa-times text-red-500"></i></button>
-            </div>
-            <div class="p-4">
-                <p class="text-sm text-gray-600 mb-3">Please enter your password to confirm deletion:</p>
-                <input type="password" x-model="confirmPassword" 
-                    @keydown.enter="executeDelete()"
-                    class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-red-500 outline-none mb-3">
-                <div x-show="deleteError" class="text-sm text-red-600 mb-2" x-text="deleteError"></div>
-                <div class="flex justify-end gap-2">
-                    <button @click="showPasswordConfirm = false; confirmPassword = ''; deleteError = ''" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
-                    <button @click="executeDelete()" class="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Copy/Move Transaction Modals -->
     <div x-show="showCopyTxModal || showMoveTxModal" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" @click.self="showCopyTxModal = false; showMoveTxModal = false">
         <div class="bg-white rounded-lg shadow-2xl w-96 overflow-hidden">
@@ -575,6 +570,123 @@
         </div>
     </div>
 
+    <!-- Change Password Modal -->
+    <div x-show="showChangePasswordModal" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" @click.self="showChangePasswordModal = false">
+        <div class="bg-white rounded-lg shadow-2xl w-96">
+            <div class="bg-blue-100 px-4 py-3 flex justify-between items-center">
+                <h3 class="font-medium text-blue-700">Change Password</h3>
+                <button @click="showChangePasswordModal = false; passwordChangeError = ''; passwordChangeSuccess = ''"><i class="fas fa-times text-blue-500"></i></button>
+            </div>
+            <div class="p-4">
+                <input type="password" x-model="currentPassword" placeholder="Current Password" class="w-full border border-gray-300 rounded px-3 py-2 mb-3 outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" x-model="newPassword" placeholder="New Password (min 6 chars)" class="w-full border border-gray-300 rounded px-3 py-2 mb-3 outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" x-model="confirmNewPassword" placeholder="Confirm New Password" class="w-full border border-gray-300 rounded px-3 py-2 mb-3 outline-none focus:ring-2 focus:ring-blue-500">
+                <div x-show="passwordChangeError" class="text-sm text-red-600 mb-2" x-text="passwordChangeError"></div>
+                <div x-show="passwordChangeSuccess" class="text-sm text-green-600 mb-2" x-text="passwordChangeSuccess"></div>
+                <div class="flex justify-end gap-2">
+                    <button @click="showChangePasswordModal = false; passwordChangeError = ''; passwordChangeSuccess = ''" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                    <button @click="changePassword()" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Change Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Account Modal -->
+    <div x-show="showDeleteAccountModal" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" @click.self="showDeleteAccountModal = false">
+        <div class="bg-white rounded-lg shadow-2xl w-96">
+            <div class="bg-red-100 px-4 py-3 flex justify-between items-center">
+                <h3 class="font-medium text-red-700">Delete Account</h3>
+                <button @click="showDeleteAccountModal = false; deleteAccountError = ''"><i class="fas fa-times text-red-500"></i></button>
+            </div>
+            <div class="p-4">
+                <p class="text-sm text-gray-600 mb-3">This will permanently delete your account and all data. This action cannot be undone.</p>
+                <input type="password" x-model="deleteAccountPassword" placeholder="Enter your password to confirm" class="w-full border border-gray-300 rounded px-3 py-2 mb-3 outline-none focus:ring-2 focus:ring-red-500">
+                <div x-show="deleteAccountError" class="text-sm text-red-600 mb-2" x-text="deleteAccountError"></div>
+                <div class="flex justify-end gap-2">
+                    <button @click="showDeleteAccountModal = false; deleteAccountError = ''" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                    <button @click="deleteAccount()" class="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700">Delete Account</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trash Modal -->
+    <div x-show="showTrashModal" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]" @click.self="showTrashModal = false">
+        <div class="bg-white rounded-lg shadow-2xl w-[600px] max-h-[80vh] overflow-hidden">
+            <div class="bg-gray-800 text-white px-4 py-3 flex justify-between items-center">
+                <h3 class="font-medium">Trash (30 days)</h3>
+                <button @click="showTrashModal = false"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto max-h-[70vh]">
+                <div class="mb-4 flex gap-2 border-b">
+                    <button @click="trashTab = 'transactions'" class="px-4 py-2 font-medium transition-colors" :class="trashTab === 'transactions' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'">
+                        Transactions (<span x-text="trash.transactions.length"></span>)
+                    </button>
+                    <button @click="trashTab = 'books'" class="px-4 py-2 font-medium transition-colors" :class="trashTab === 'books' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'">
+                        Books (<span x-text="trash.books.length"></span>)
+                    </button>
+                    <button @click="trashTab = 'businesses'" class="px-4 py-2 font-medium transition-colors" :class="trashTab === 'businesses' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'">
+                        Businesses (<span x-text="trash.businesses.length"></span>)
+                    </button>
+                </div>
+
+                <div x-show="trashTab === 'transactions'" class="space-y-2">
+                    <template x-for="item in trash.transactions" :key="item.id">
+                        <div class="border border-gray-200 rounded-lg p-3 flex justify-between items-center">
+                            <div class="flex-1">
+                                <div class="font-medium" x-text="item.data.description"></div>
+                                <div class="text-xs text-gray-500">Deleted: <span x-text="new Date(item.deletedAt).toLocaleDateString()"></span> • <span x-text="getDaysRemaining(item.deletedAt)"></span> days remaining</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="restoreTransaction(item)" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">Restore</button>
+                                <button @click="permanentlyDeleteTransaction(item.id)" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">Delete Forever</button>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="trash.transactions.length === 0" class="text-center py-8 text-gray-500">
+                        No deleted transactions
+                    </div>
+                </div>
+
+                <div x-show="trashTab === 'books'" class="space-y-2">
+                    <template x-for="item in trash.books" :key="item.id">
+                        <div class="border border-gray-200 rounded-lg p-3 flex justify-between items-center">
+                            <div class="flex-1">
+                                <div class="font-medium" x-text="item.data.name"></div>
+                                <div class="text-xs text-gray-500">Deleted: <span x-text="new Date(item.deletedAt).toLocaleDateString()"></span> • <span x-text="getDaysRemaining(item.deletedAt)"></span> days remaining</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="restoreBook(item)" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">Restore</button>
+                                <button @click="permanentlyDeleteBook(item.id)" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">Delete Forever</button>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="trash.books.length === 0" class="text-center py-8 text-gray-500">
+                        No deleted books
+                    </div>
+                </div>
+
+                <div x-show="trashTab === 'businesses'" class="space-y-2">
+                    <template x-for="item in trash.businesses" :key="item.id">
+                        <div class="border border-gray-200 rounded-lg p-3 flex justify-between items-center">
+                            <div class="flex-1">
+                                <div class="font-medium" x-text="item.data.name"></div>
+                                <div class="text-xs text-gray-500">Deleted: <span x-text="new Date(item.deletedAt).toLocaleDateString()"></span> • <span x-text="getDaysRemaining(item.deletedAt)"></span> days remaining</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button @click="restoreBusiness(item)" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">Restore</button>
+                                <button @click="permanentlyDeleteBusiness(item.id)" class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">Delete Forever</button>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="trash.businesses.length === 0" class="text-center py-8 text-gray-500">
+                        No deleted businesses
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Firebase Configuration
         const firebaseConfig = {
@@ -610,7 +722,9 @@
                 showMoveTxModal: false,
                 showCopyBookModal: false,
                 showMoveBookModal: false,
-                showPasswordConfirm: false,
+                showChangePasswordModal: false,
+                showDeleteAccountModal: false,
+                showTrashModal: false,
                 newBusinessName: '',
                 newBookName: '',
                 selectedTransactions: [],
@@ -622,9 +736,15 @@
                 editingTx: null,
                 sidebarOpen: true,
                 copiedBookId: null,
-                confirmPassword: '',
-                deleteAction: null,
-                deleteError: '',
+                currentPassword: '',
+                newPassword: '',
+                confirmNewPassword: '',
+                passwordChangeError: '',
+                passwordChangeSuccess: '',
+                deleteAccountPassword: '',
+                deleteAccountError: '',
+                trash: { transactions: [], books: [], businesses: [] },
+                trashTab: 'transactions',
                 newTx: {
                     bookId: null,
                     type: 'debit',
@@ -639,6 +759,7 @@
                         this.user = user;
                         if (user) {
                             this.loadData();
+                            this.cleanupOldTrash();
                         }
                     });
                 },
@@ -665,7 +786,7 @@
                     }
                 },
 
-                async resetPassword() {
+                async resetPasswordEmail() {
                     try {
                         this.authError = '';
                         await auth.sendPasswordResetEmail(this.authEmail);
@@ -679,6 +800,72 @@
                     }
                 },
 
+                async changePassword() {
+                    try {
+                        this.passwordChangeError = '';
+                        this.passwordChangeSuccess = '';
+
+                        if (this.newPassword.length < 6) {
+                            this.passwordChangeError = 'Password must be at least 6 characters';
+                            return;
+                        }
+
+                        if (this.newPassword !== this.confirmNewPassword) {
+                            this.passwordChangeError = 'Passwords do not match';
+                            return;
+                        }
+
+                        const user = auth.currentUser;
+                        const credential = firebase.auth.EmailAuthProvider.credential(user.email, this.currentPassword);
+                        await user.reauthenticateWithCredential(credential);
+                        await user.updatePassword(this.newPassword);
+
+                        this.passwordChangeSuccess = 'Password changed successfully!';
+                        setTimeout(() => {
+                            this.showChangePasswordModal = false;
+                            this.currentPassword = '';
+                            this.newPassword = '';
+                            this.confirmNewPassword = '';
+                            this.passwordChangeSuccess = '';
+                        }, 2000);
+                    } catch (error) {
+                        if (error.code === 'auth/wrong-password') {
+                            this.passwordChangeError = 'Current password is incorrect';
+                        } else {
+                            this.passwordChangeError = error.message;
+                        }
+                    }
+                },
+
+                async deleteAccount() {
+                    try {
+                        this.deleteAccountError = '';
+
+                        if (!this.deleteAccountPassword) {
+                            this.deleteAccountError = 'Please enter your password';
+                            return;
+                        }
+
+                        const user = auth.currentUser;
+                        const credential = firebase.auth.EmailAuthProvider.credential(user.email, this.deleteAccountPassword);
+                        await user.reauthenticateWithCredential(credential);
+                        
+                        localStorage.removeItem(`ledgermail_${this.user.uid}`);
+                        localStorage.removeItem(`ledgermail_trash_${this.user.uid}`);
+                        
+                        await user.delete();
+                        
+                        this.showDeleteAccountModal = false;
+                        alert('Account deleted successfully');
+                    } catch (error) {
+                        if (error.code === 'auth/wrong-password') {
+                            this.deleteAccountError = 'Incorrect password';
+                        } else {
+                            this.deleteAccountError = error.message;
+                        }
+                    }
+                },
+
                 async logout() {
                     await auth.signOut();
                     this.businesses = [];
@@ -688,6 +875,8 @@
 
                 loadData() {
                     const saved = localStorage.getItem(`ledgermail_${this.user.uid}`);
+                    const trashSaved = localStorage.getItem(`ledgermail_trash_${this.user.uid}`);
+                    
                     if (saved) {
                         this.businesses = JSON.parse(saved);
                         if (this.businesses.length > 0) {
@@ -710,12 +899,41 @@
                         this.activeBookId = this.businesses[0].books[0].id;
                         this.save();
                     }
+
+                    if (trashSaved) {
+                        this.trash = JSON.parse(trashSaved);
+                    }
                 },
 
                 save() {
                     if (this.user) {
                         localStorage.setItem(`ledgermail_${this.user.uid}`, JSON.stringify(this.businesses));
+                        localStorage.setItem(`ledgermail_trash_${this.user.uid}`, JSON.stringify(this.trash));
                     }
+                },
+
+                cleanupOldTrash() {
+                    const now = Date.now();
+                    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+
+                    this.trash.transactions = this.trash.transactions.filter(item => 
+                        (now - item.deletedAt) < thirtyDays
+                    );
+                    this.trash.books = this.trash.books.filter(item => 
+                        (now - item.deletedAt) < thirtyDays
+                    );
+                    this.trash.businesses = this.trash.businesses.filter(item => 
+                        (now - item.deletedAt) < thirtyDays
+                    );
+                    
+                    this.save();
+                },
+
+                getDaysRemaining(deletedAt) {
+                    const now = Date.now();
+                    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+                    const remaining = thirtyDays - (now - deletedAt);
+                    return Math.max(0, Math.ceil(remaining / (24 * 60 * 60 * 1000)));
                 },
 
                 formatCurrency(val) {
@@ -758,11 +976,19 @@
                     if (!business) return;
 
                     const targetBookId = this.newTx.bookId || this.activeBookId;
-                    const book = business.books.find(b => b.id === targetBookId);
-                    if (!book) return;
+                    let targetBook = null;
+                    
+                    for (const b of this.businesses) {
+                        const found = b.books.find(book => book.id === targetBookId);
+                        if (found) {
+                            targetBook = found;
+                            break;
+                        }
+                    }
+
+                    if (!targetBook) return;
 
                     if (this.editingTx) {
-                        // Update existing transaction
                         Object.assign(this.editingTx, {
                             type: this.newTx.type,
                             date: this.newTx.date,
@@ -771,8 +997,7 @@
                             category: this.newTx.category
                         });
                     } else {
-                        // Add new transaction
-                        book.transactions.unshift({
+                        targetBook.transactions.unshift({
                             id: Date.now(),
                             type: this.newTx.type,
                             date: this.newTx.date,
@@ -788,12 +1013,47 @@
                 },
 
                 deleteTransaction(txId) {
-                    if (confirm('Delete this transaction?')) {
-                        const book = this.activeBook;
-                        if (book) {
-                            book.transactions = book.transactions.filter(t => t.id !== txId);
-                            this.save();
+                    const book = this.activeBook;
+                    if (!book) return;
+
+                    const tx = book.transactions.find(t => t.id === txId);
+                    if (!tx) return;
+
+                    this.trash.transactions.push({
+                        id: txId,
+                        data: {...tx},
+                        bookId: this.activeBookId,
+                        deletedAt: Date.now()
+                    });
+
+                    book.transactions = book.transactions.filter(t => t.id !== txId);
+                    this.save();
+                },
+
+                restoreTransaction(item) {
+                    let targetBook = null;
+                    for (const business of this.businesses) {
+                        const found = business.books.find(b => b.id === item.bookId);
+                        if (found) {
+                            targetBook = found;
+                            break;
                         }
+                    }
+
+                    if (targetBook) {
+                        targetBook.transactions.push(item.data);
+                        this.trash.transactions = this.trash.transactions.filter(t => t.id !== item.id);
+                        this.save();
+                        alert('Transaction restored!');
+                    } else {
+                        alert('Original book not found. Transaction cannot be restored.');
+                    }
+                },
+
+                permanentlyDeleteTransaction(id) {
+                    if (confirm('Permanently delete this transaction? This cannot be undone.')) {
+                        this.trash.transactions = this.trash.transactions.filter(t => t.id !== id);
+                        this.save();
                     }
                 },
 
@@ -845,7 +1105,7 @@
                     }
 
                     const sourceBook = this.activeBook;
-                    if (!targetBook || !sourceBook || targetBookId === this.activeBookId) return;
+                    if (!targetBook || !sourceBook) return;
 
                     const txsToMove = sourceBook.transactions.filter(t => this.selectedTransactions.includes(t.id));
                     txsToMove.forEach(tx => {
@@ -876,11 +1136,34 @@
 
                 confirmDeleteBusiness(id) {
                     if (confirm('Delete this business and all its books?')) {
+                        const business = this.businesses.find(b => b.id === id);
+                        if (!business) return;
+
+                        this.trash.businesses.push({
+                            id: id,
+                            data: {...business},
+                            deletedAt: Date.now()
+                        });
+
                         this.businesses = this.businesses.filter(b => b.id !== id);
                         if (this.activeBusinessId === id) {
                             this.activeBusinessId = this.businesses.length > 0 ? this.businesses[0].id : null;
                             this.activeBookId = null;
                         }
+                        this.save();
+                    }
+                },
+
+                restoreBusiness(item) {
+                    this.businesses.push(item.data);
+                    this.trash.businesses = this.trash.businesses.filter(b => b.id !== item.id);
+                    this.save();
+                    alert('Business restored!');
+                },
+
+                permanentlyDeleteBusiness(id) {
+                    if (confirm('Permanently delete this business? This cannot be undone.')) {
+                        this.trash.businesses = this.trash.businesses.filter(b => b.id !== id);
                         this.save();
                     }
                 },
@@ -924,13 +1207,42 @@
                 confirmDeleteBook(id) {
                     if (confirm('Delete this book and all its transactions?')) {
                         const business = this.activeBusiness;
-                        if (business) {
-                            business.books = business.books.filter(b => b.id !== id);
-                            if (this.activeBookId === id) {
-                                this.activeBookId = business.books.length > 0 ? business.books[0].id : null;
-                            }
-                            this.save();
+                        if (!business) return;
+
+                        const book = business.books.find(b => b.id === id);
+                        if (!book) return;
+
+                        this.trash.books.push({
+                            id: id,
+                            data: {...book},
+                            businessId: this.activeBusinessId,
+                            deletedAt: Date.now()
+                        });
+
+                        business.books = business.books.filter(b => b.id !== id);
+                        if (this.activeBookId === id) {
+                            this.activeBookId = business.books.length > 0 ? business.books[0].id : null;
                         }
+                        this.save();
+                    }
+                },
+
+                restoreBook(item) {
+                    const business = this.businesses.find(b => b.id === item.businessId);
+                    if (business) {
+                        business.books.push(item.data);
+                        this.trash.books = this.trash.books.filter(b => b.id !== item.id);
+                        this.save();
+                        alert('Book restored!');
+                    } else {
+                        alert('Original business not found. Book cannot be restored.');
+                    }
+                },
+
+                permanentlyDeleteBook(id) {
+                    if (confirm('Permanently delete this book? This cannot be undone.')) {
+                        this.trash.books = this.trash.books.filter(b => b.id !== id);
+                        this.save();
                     }
                 },
 
@@ -1013,48 +1325,6 @@
                     this.showMoveBookModal = false;
                     this.save();
                     alert(`Book moved to ${targetBusiness.name}!`);
-                },
-
-                async executeDelete() {
-                    try {
-                        this.deleteError = '';
-                        
-                        // Get the current user from Firebase
-                        const currentUser = auth.currentUser;
-                        if (!currentUser) {
-                            this.deleteError = 'No user logged in';
-                            return;
-                        }
-                        
-                        // Create credential
-                        const credential = firebase.auth.EmailAuthProvider.credential(
-                            currentUser.email,
-                            this.confirmPassword
-                        );
-                        
-                        // Re-authenticate
-                        await currentUser.reauthenticateWithCredential(credential);
-                        
-                        // If successful, execute the delete action
-                        if (this.deleteAction) {
-                            this.deleteAction();
-                            this.deleteAction = null;
-                        }
-                        
-                        // Close modal and reset
-                        this.showPasswordConfirm = false;
-                        this.confirmPassword = '';
-                        this.deleteError = '';
-                    } catch (error) {
-                        console.error('Delete error:', error);
-                        if (error.code === 'auth/wrong-password') {
-                            this.deleteError = 'Incorrect password';
-                        } else if (error.code === 'auth/too-many-requests') {
-                            this.deleteError = 'Too many attempts. Try again later.';
-                        } else {
-                            this.deleteError = 'Authentication failed. Please try again.';
-                        }
-                    }
                 },
 
                 getClosingBalance(date, index) {
@@ -1250,6 +1520,10 @@
                 get allTransactionsCount() {
                     const book = this.activeBook;
                     return book ? book.transactions.length : 0;
+                },
+
+                get trashCount() {
+                    return this.trash.transactions.length + this.trash.books.length + this.trash.businesses.length;
                 },
 
                 exportToPDF() {
