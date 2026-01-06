@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ledger Manager - Debit/Credit Manager</title>
+    <title>Ledger Manager - Secure Debit/Credit Manager</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,12 +16,16 @@
         [x-cloak] { display: none !important; }
         .gmail-sidebar-item:hover { background-color: #f1f3f4; border-radius: 0 20px 20px 0; }
         .gmail-sidebar-active { background-color: #fce8e6; color: #d93025; border-radius: 0 20px 20px 0; font-weight: bold; }
-        .transaction-row:hover { box-shadow: inset 1px 0 0 #dadce0, inset -1px 0 0 #dadce0, 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15); z-index: 10; cursor: pointer; }
+        .transaction-row:hover { background-color: #f8f9fa; cursor: pointer; }
         .dropdown-menu { position: relative; }
         .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 50; min-width: 160px; }
         .dropdown-menu:hover .dropdown-content { display: block; }
         .dropdown-item { padding: 8px 16px; cursor: pointer; transition: background 0.2s; }
         .dropdown-item:hover { background: #f1f3f4; }
+        .cash-in-text { color: #1e8e3e; }
+        .cash-out-text { color: #d93025; }
+        .table-header { @apply bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider py-3 px-4 text-left border-b; }
+        .table-cell { @apply py-4 px-4 text-sm border-b border-gray-100; }
     </style>
 </head>
 <body class="bg-[#f6f8fc] text-[#202124] font-sans antialiased" x-data="app()" x-init="init()">
@@ -236,19 +240,19 @@
                 </div>
 
                 <div class="mt-4 px-6 pt-4 border-t border-gray-200">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-4">Summary</h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Credit:</span>
-                            <span class="text-green-600 font-bold" x-text="formatCurrency(activeBookSummary.credit)"></span>
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-4">Book Overview</h3>
+                    <div class="space-y-4">
+                        <div class="bg-green-50 p-3 rounded-xl border border-green-100">
+                            <div class="text-xs text-green-600 font-bold uppercase mb-1">Cash In (+)</div>
+                            <div class="text-lg font-bold text-green-700" x-text="formatCurrency(activeBookSummary.credit)"></div>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Debit:</span>
-                            <span class="text-red-600 font-bold" x-text="formatCurrency(activeBookSummary.debit)"></span>
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-100">
+                            <div class="text-xs text-red-600 font-bold uppercase mb-1">Cash Out (-)</div>
+                            <div class="text-lg font-bold text-red-700" x-text="formatCurrency(activeBookSummary.debit)"></div>
                         </div>
-                        <div class="flex justify-between border-t pt-2 mt-2">
-                            <span class="font-bold">Net:</span>
-                            <span class="font-bold" :class="activeBookSummary.balance >= 0 ? 'text-green-600' : 'text-red-600'" x-text="formatCurrency(activeBookSummary.balance)"></span>
+                        <div class="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                            <div class="text-xs text-blue-600 font-bold uppercase mb-1">Net Balance</div>
+                            <div class="text-lg font-bold" :class="activeBookSummary.balance >= 0 ? 'text-blue-700' : 'text-red-700'" x-text="formatCurrency(activeBookSummary.balance)"></div>
                         </div>
                     </div>
                 </div>
@@ -266,121 +270,126 @@
 
             <!-- Main Content -->
             <main class="flex-1 bg-white md:rounded-tl-2xl border-l border-t border-gray-200 overflow-hidden flex flex-col">
-                <!-- Toolbar -->
-                <div class="h-auto border-b border-gray-100 px-4 py-3">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-4">
-                            <template x-if="selectedTransactions.length > 0">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm text-gray-600" x-text="`${selectedTransactions.length} selected`"></span>
-                                    <button @click="showCopyTxModal = true" class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded text-sm font-medium hover:bg-blue-100 transition-colors">
-                                        <i class="fas fa-copy mr-1"></i> Copy
-                                    </button>
-                                    <button @click="showMoveTxModal = true" class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded text-sm font-medium hover:bg-orange-100 transition-colors">
-                                        <i class="fas fa-arrow-right mr-1"></i> Move
-                                    </button>
-                                    <button @click="selectedTransactions = []" class="px-3 py-1.5 text-gray-600 rounded text-sm hover:bg-gray-100">
-                                        Clear
-                                    </button>
-                                </div>
-                            </template>
+                <!-- Summary & Filter Bar -->
+                <div class="bg-white border-b border-gray-100 p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="flex flex-col items-center justify-center p-6 bg-green-50 rounded-2xl border border-green-100 text-center">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">+</span>
+                                <span class="text-gray-500 text-xs font-bold uppercase tracking-widest">Cash In</span>
+                            </div>
+                            <div class="text-3xl font-bold text-green-600" x-text="formatCurrency(activeBookSummary.credit)"></div>
                         </div>
-                        <div class="flex gap-2">
-                            <button @click="showAllEntries = !showAllEntries" 
-                                class="px-4 py-1.5 rounded text-sm font-medium transition-colors"
-                                :class="showAllEntries ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'">
-                                <i class="fas mr-1" :class="showAllEntries ? 'fa-eye' : 'fa-eye-slash'"></i>
-                                <span x-text="showAllEntries ? 'Showing All' : 'Show All'"></span>
-                            </button>
-                            <button @click="exportToPDF()" class="bg-purple-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
-                                <i class="fas fa-file-pdf mr-1"></i> Export PDF
-                            </button>
-                            <button @click="openTransactionModal()" class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700 transition-colors">
-                                <i class="fas fa-plus mr-1"></i> Add Transaction
-                            </button>
+                        <div class="flex flex-col items-center justify-center p-6 bg-red-50 rounded-2xl border border-red-100 text-center">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold">−</span>
+                                <span class="text-gray-500 text-xs font-bold uppercase tracking-widest">Cash Out</span>
+                            </div>
+                            <div class="text-3xl font-bold text-red-600" x-text="formatCurrency(activeBookSummary.debit)"></div>
+                        </div>
+                        <div class="flex flex-col items-center justify-center p-6 bg-blue-50 rounded-2xl border border-blue-100 text-center">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm">
+                                    <i class="fas fa-wallet text-[10px]"></i>
+                                </span>
+                                <span class="text-gray-500 text-xs font-bold uppercase tracking-widest">Net Balance</span>
+                            </div>
+                            <div class="text-3xl font-bold text-blue-600" x-text="formatCurrency(activeBookSummary.balance)"></div>
                         </div>
                     </div>
-                    
-                    <!-- Filter Pills -->
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-xs text-gray-500 font-medium">Filter:</span>
-                        <button @click="selectedCategory = null" 
-                            class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-                            :class="selectedCategory === null ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
-                            All
-                        </button>
-                        <template x-for="cat in categorySummary" :key="cat.name">
-                            <button @click="selectedCategory = cat.name" 
-                                class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-                                :class="selectedCategory === cat.name ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                                x-text="cat.name + ' (' + cat.count + ')'">
+
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-2 flex-1 min-w-[300px]">
+                            <select x-model="filterDuration" class="bg-gray-100 border-none rounded-lg px-4 py-2 text-sm font-medium outline-none">
+                                <option value="all">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="yesterday">Yesterday</option>
+                                <option value="this-month">This Month</option>
+                            </select>
+                            <div class="relative flex-1">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                <input type="text" x-model="searchQuery" placeholder="Search by details, category..." 
+                                    class="w-full bg-gray-100 border-none rounded-lg py-2 pl-10 pr-4 text-sm outline-none">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button @click="openTransactionModal('credit')" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm shadow-green-200 transition-all flex items-center gap-2">
+                                <i class="fas fa-plus"></i> Cash In
                             </button>
-                        </template>
+                            <button @click="openTransactionModal('debit')" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm shadow-red-200 transition-all flex items-center gap-2">
+                                <i class="fas fa-minus"></i> Cash Out
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Transaction List -->
-                <div class="flex-1 overflow-y-auto">
-                    <div class="px-4 py-3">
-                        <template x-for="group in groupedTransactions" :key="group.date">
-                            <div class="mb-6">
-                                <!-- Date Header -->
-                                <div class="sticky top-0 bg-gray-100 px-4 py-2 rounded-lg mb-2 flex justify-between items-center">
-                                    <h3 class="font-bold text-gray-700" x-text="formatDateHeader(group.date)"></h3>
-                                    <div class="text-sm text-gray-600">
-                                        <span class="mr-4">Debit: <span class="text-red-600 font-medium" x-text="formatCurrency(group.totalDebit)"></span></span>
-                                        <span>Credit: <span class="text-green-600 font-medium" x-text="formatCurrency(group.totalCredit)"></span></span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Transactions for this date -->
-                                <div class="space-y-1">
-                                    <template x-for="(tx, index) in group.transactions" :key="tx.id">
-                                        <div class="bg-white border border-gray-200 rounded-lg px-4 py-3 hover:shadow-md transition-shadow group flex items-center gap-4">
-                                            <input type="checkbox" class="rounded border-gray-300" :value="tx.id" x-model="selectedTransactions">
-                                            
-                                            <div class="flex-1 grid grid-cols-12 gap-4 items-center">
-                                                <div class="col-span-4">
-                                                    <div class="font-medium text-gray-900" x-text="tx.description"></div>
-                                                    <div class="text-xs text-gray-500" x-text="tx.category || 'General'"></div>
-                                                </div>
-                                                <div class="col-span-2">
-                                                    <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-medium" x-text="tx.category || 'General'"></span>
-                                                </div>
-                                                <div class="col-span-2 text-right">
-                                                    <span class="text-red-600 font-bold" x-text="tx.type === 'debit' ? formatCurrency(tx.amount) : '-'"></span>
-                                                </div>
-                                                <div class="col-span-2 text-right">
-                                                    <span class="text-green-600 font-bold" x-text="tx.type === 'credit' ? formatCurrency(tx.amount) : '-'"></span>
-                                                </div>
-                                                <div class="col-span-1 text-right">
-                                                    <span class="font-bold text-sm" :class="getClosingBalance(group.date, index) >= 0 ? 'text-green-600' : 'text-red-600'" x-text="formatCurrency(getClosingBalance(group.date, index))"></span>
-                                                </div>
-                                                <div class="col-span-1 text-right relative dropdown-menu">
-                                                    <button @click.stop class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-1">
-                                                        <i class="fas fa-ellipsis-v"></i>
-                                                    </button>
-                                                    <div class="dropdown-content">
-                                                        <div @click.stop="editTransaction(tx)" class="dropdown-item">
-                                                            <i class="fas fa-edit mr-2"></i> Edit
-                                                        </div>
-                                                        <div @click.stop="copyTransaction(tx)" class="dropdown-item">
-                                                            <i class="fas fa-copy mr-2"></i> Copy
-                                                        </div>
-                                                        <div @click.stop="moveTransaction(tx)" class="dropdown-item">
-                                                            <i class="fas fa-arrow-right mr-2"></i> Move
-                                                        </div>
-                                                        <div @click.stop="deleteTransaction(tx.id)" class="dropdown-item text-red-600">
-                                                            <i class="fas fa-trash mr-2"></i> Delete
-                                                        </div>
-                                                    </div>
-                                                </div>
+                <div class="flex-1 overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="sticky top-0 bg-white z-10">
+                                <th class="table-header">Date & Time</th>
+                                <th class="table-header">Details</th>
+                                <th class="table-header">Category</th>
+                                <th class="table-header">Mode</th>
+                                <th class="table-header text-center">Bill</th>
+                                <th class="table-header text-right">Amount</th>
+                                <th class="table-header text-right">Balance</th>
+                                <th class="table-header w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(tx, index) in filteredTransactions" :key="tx.id">
+                                <tr class="transaction-row group">
+                                    <td class="table-cell">
+                                        <div class="font-medium" x-text="formatDate(tx.date)"></div>
+                                        <div class="text-[10px] text-gray-400 font-bold uppercase" x-text="tx.time || '12:00 PM'"></div>
+                                    </td>
+                                    <td class="table-cell">
+                                        <div class="font-medium text-gray-800" x-text="tx.description"></div>
+                                    </td>
+                                    <td class="table-cell">
+                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase tracking-wider" x-text="tx.category || 'GENERAL'"></span>
+                                    </td>
+                                    <td class="table-cell">
+                                        <div class="flex items-center gap-2">
+                                            <i class="fas fa-money-bill-wave text-blue-500 text-xs"></i>
+                                            <span class="text-gray-600">Cash</span>
+                                        </div>
+                                    </td>
+                                    <td class="table-cell text-center text-gray-400">--</td>
+                                    <td class="table-cell text-right font-bold" :class="tx.type === 'credit' ? 'cash-in-text' : 'cash-out-text'">
+                                        <span x-text="tx.type === 'credit' ? '+' : '−'"></span>
+                                        <span x-text="formatCurrency(tx.amount).replace('₹', '')"></span>
+                                    </td>
+                                    <td class="table-cell text-right font-bold text-gray-700">
+                                        <span x-text="formatCurrency(getRunningBalance(tx.id))"></span>
+                                    </td>
+                                    <td class="table-cell text-right relative">
+                                        <div class="dropdown-menu">
+                                            <button @click.stop class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-2 transition-opacity">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <div class="dropdown-content right-0">
+                                                <div @click.stop="editTransaction(tx)" class="dropdown-item"><i class="fas fa-edit mr-2"></i> Edit</div>
+                                                <div @click.stop="deleteTransaction(tx.id)" class="dropdown-item text-red-600"><i class="fas fa-trash mr-2"></i> Delete</div>
                                             </div>
                                         </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                            <template x-if="filteredTransactions.length === 0">
+                                <tr>
+                                    <td colspan="8" class="py-20 text-center text-gray-500">
+                                        <i class="fas fa-receipt text-5xl mb-4 block opacity-10"></i>
+                                        No transactions recorded.
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
                         
                         <!-- Summary at bottom -->
                         <template x-if="groupedTransactions.length > 0">
@@ -536,14 +545,18 @@
                 <div class="flex gap-4">
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Type</label>
-                        <select x-model="newTx.type" class="w-full border border-gray-300 rounded px-3 py-2 outline-none">
-                            <option value="debit">Debit (-)</option>
-                            <option value="credit">Credit (+)</option>
+                        <select x-model="newTx.type" class="w-full border border-gray-300 rounded px-3 py-2 outline-none" :class="newTx.type === 'credit' ? 'text-green-600 font-bold' : 'text-red-600 font-bold'">
+                            <option value="credit">Cash In (+)</option>
+                            <option value="debit">Cash Out (-)</option>
                         </select>
                     </div>
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
                         <input type="date" x-model="newTx.date" class="w-full border border-gray-300 rounded px-3 py-2 outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Time</label>
+                        <input type="text" x-model="newTx.time" class="w-full border border-gray-300 rounded px-3 py-2 outline-none" placeholder="12:00 PM">
                     </div>
                 </div>
                 <div>
@@ -689,7 +702,7 @@
 
     <script>
         // Firebase Configuration
-        const firebaseConfig = {
+         const firebaseConfig = {
   apiKey: "AIzaSyAxxUdZX1DkjVGNapo0cco6Lc_pcd-QXa8",
   authDomain: "chat-app-b230d.firebaseapp.com",
   databaseURL: "https://chat-app-b230d-default-rtdb.firebaseio.com",
@@ -716,6 +729,7 @@
                 activeBookId: null,
                 searchQuery: '',
                 selectedCategory: null,
+                filterDuration: 'all',
                 showBusinessModal: false,
                 showBookModal: false,
                 showTransactionModal: false,
@@ -851,8 +865,8 @@
                         const credential = firebase.auth.EmailAuthProvider.credential(user.email, this.deleteAccountPassword);
                         await user.reauthenticateWithCredential(credential);
                         
-                        localStorage.removeItem(`ledgermail_${this.user.uid}`);
-                        localStorage.removeItem(`ledgermail_trash_${this.user.uid}`);
+                        localStorage.removeItem(`ledgermanager_${this.user.uid}`);
+                        localStorage.removeItem(`ledgermanager_trash_${this.user.uid}`);
                         
                         await user.delete();
                         
@@ -875,8 +889,8 @@
                 },
 
                 loadData() {
-                    const saved = localStorage.getItem(`ledgermail_${this.user.uid}`);
-                    const trashSaved = localStorage.getItem(`ledgermail_trash_${this.user.uid}`);
+                    const saved = localStorage.getItem(`ledgermanager_${this.user.uid}`);
+                    const trashSaved = localStorage.getItem(`ledgermanager_trash_${this.user.uid}`);
                     
                     if (saved) {
                         this.businesses = JSON.parse(saved);
@@ -908,8 +922,8 @@
 
                 save() {
                     if (this.user) {
-                        localStorage.setItem(`ledgermail_${this.user.uid}`, JSON.stringify(this.businesses));
-                        localStorage.setItem(`ledgermail_trash_${this.user.uid}`, JSON.stringify(this.trash));
+                        localStorage.setItem(`ledgermanager_${this.user.uid}`, JSON.stringify(this.businesses));
+                        localStorage.setItem(`ledgermanager_trash_${this.user.uid}`, JSON.stringify(this.trash));
                     }
                 },
 
@@ -944,17 +958,43 @@
                     }).format(val || 0);
                 },
 
-                openTransactionModal() {
+                openTransactionModal(forcedType = null) {
                     this.editingTx = null;
+                    const now = new Date();
                     this.newTx = {
                         bookId: this.activeBookId,
-                        type: 'debit',
-                        date: new Date().toISOString().split('T')[0],
+                        type: forcedType || 'debit',
+                        date: now.toISOString().split('T')[0],
+                        time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
                         description: '',
                         amount: '',
                         category: ''
                     };
                     this.showTransactionModal = true;
+                },
+
+                formatDate(dateStr) {
+                    const d = new Date(dateStr);
+                    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                },
+
+                getRunningBalance(txId) {
+                    const book = this.activeBook;
+                    if (!book) return 0;
+                    
+                    const sortedTxs = [...book.transactions].sort((a, b) => {
+                        const dateCompare = new Date(a.date) - new Date(b.date);
+                        if (dateCompare !== 0) return dateCompare;
+                        return a.id - b.id;
+                    });
+
+                    let balance = 0;
+                    for (const tx of sortedTxs) {
+                        if (tx.type === 'credit') balance += tx.amount;
+                        else balance -= tx.amount;
+                        if (tx.id === txId) return balance;
+                    }
+                    return 0;
                 },
 
                 editTransaction(tx) {
@@ -993,6 +1033,7 @@
                         Object.assign(this.editingTx, {
                             type: this.newTx.type,
                             date: this.newTx.date,
+                            time: this.newTx.time,
                             description: this.newTx.description,
                             amount: parseFloat(this.newTx.amount),
                             category: this.newTx.category
@@ -1002,6 +1043,7 @@
                             id: Date.now(),
                             type: this.newTx.type,
                             date: this.newTx.date,
+                            time: this.newTx.time,
                             description: this.newTx.description,
                             amount: parseFloat(this.newTx.amount),
                             category: this.newTx.category
@@ -1388,9 +1430,29 @@
                     
                     let transactions = book.transactions;
 
+                    // Duration Filter
+                    if (this.filterDuration !== 'all') {
+                        const now = new Date();
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        
+                        transactions = transactions.filter(t => {
+                            const txDate = new Date(t.date);
+                            if (this.filterDuration === 'today') {
+                                return txDate.getTime() === today.getTime();
+                            } else if (this.filterDuration === 'yesterday') {
+                                const yesterday = new Date(today);
+                                yesterday.setDate(yesterday.getDate() - 1);
+                                return txDate.getTime() === yesterday.getTime();
+                            } else if (this.filterDuration === 'this-month') {
+                                return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
+                            }
+                            return true;
+                        });
+                    }
+
                     if (this.selectedCategory) {
                         transactions = transactions.filter(t => 
-                            (t.category || 'General') === this.selectedCategory
+                            (t.category || 'General').toLowerCase() === this.selectedCategory.toLowerCase()
                         );
                     }
 
@@ -1402,7 +1464,12 @@
                         );
                     }
 
-                    return [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+                    // Default sort: newest first
+                    return [...transactions].sort((a, b) => {
+                        const dateCompare = new Date(b.date) - new Date(a.date);
+                        if (dateCompare !== 0) return dateCompare;
+                        return b.id - a.id;
+                    });
                 },
 
                 get groupedTransactions() {
