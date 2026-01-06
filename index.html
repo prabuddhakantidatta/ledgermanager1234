@@ -274,11 +274,17 @@
                             <template x-if="selectedTransactions.length > 0">
                                 <div class="flex items-center gap-2 text-sm">
                                     <span class="text-gray-600" x-text="`${selectedTransactions.length} selected`"></span>
+                                    <button @click="editSelectedTransaction()" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm font-medium hover:bg-black transition-colors">
+                                        <i class="fas fa-edit mr-1"></i> Edit
+                                    </button>
                                     <button @click="showCopyTxModal = true" class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded text-sm font-medium hover:bg-blue-100 transition-colors">
                                         <i class="fas fa-copy mr-1"></i> Copy
                                     </button>
                                     <button @click="showMoveTxModal = true" class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded text-sm font-medium hover:bg-orange-100 transition-colors">
                                         <i class="fas fa-arrow-right mr-1"></i> Move
+                                    </button>
+                                    <button @click="deleteSelectedTransactions()" class="px-3 py-1.5 bg-red-50 text-red-600 rounded text-sm font-medium hover:bg-red-100 transition-colors">
+                                        <i class="fas fa-trash mr-1"></i> Delete
                                     </button>
                                     <button @click="selectedTransactions = []" class="px-3 py-1.5 text-gray-600 rounded text-sm hover:bg-gray-100">
                                         Clear
@@ -404,7 +410,6 @@
                                         <th class="px-3 py-2 whitespace-nowrap text-center">Bill</th>
                                         <th class="px-3 py-2 whitespace-nowrap text-right">Amount</th>
                                         <th class="px-3 py-2 whitespace-nowrap text-right">Balance</th>
-                                        <th class="px-3 py-2 w-8"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -442,27 +447,6 @@
                                             </td>
                                             <td class="px-3 py-2 align-middle text-right whitespace-nowrap">
                                                 <span class="font-semibold" :class="tx._balance >= 0 ? 'text-green-600' : 'text-red-600'" x-text="formatCurrency(tx._balance)"></span>
-                                            </td>
-                                            <td class="px-3 py-2 align-middle text-right">
-                                                <div class="relative dropdown-menu inline-block">
-                                                    <button @click.stop class="text-gray-400 hover:text-gray-600 p-1">
-                                                        <i class="fas fa-ellipsis-v"></i>
-                                                    </button>
-                                                    <div class="dropdown-content">
-                                                        <div @click.stop="editTransaction(tx)" class="dropdown-item">
-                                                            <i class="fas fa-edit mr-2"></i> Edit
-                                                        </div>
-                                                        <div @click.stop="copyTransaction(tx)" class="dropdown-item">
-                                                            <i class="fas fa-copy mr-2"></i> Copy
-                                                        </div>
-                                                        <div @click.stop="moveTransaction(tx)" class="dropdown-item">
-                                                            <i class="fas fa-arrow-right mr-2"></i> Move
-                                                        </div>
-                                                        <div @click.stop="deleteTransaction(tx.id)" class="dropdown-item text-red-600">
-                                                            <i class="fas fa-trash mr-2"></i> Delete
-                                                        </div>
-                                                    </div>
-                                                </div>
                                             </td>
                                         </tr>
                                     </template>
@@ -1212,6 +1196,38 @@
                     this.showMoveTxModal = false;
                     this.save();
                     alert(`${txsToMove.length} transaction(s) moved!`);
+                },
+
+                editSelectedTransaction() {
+                    if (!this.activeBook || this.selectedTransactions.length === 0) return;
+                    if (this.selectedTransactions.length > 1) {
+                        alert('Please select only one transaction to edit.');
+                        return;
+                    }
+                    const id = this.selectedTransactions[0];
+                    const tx = this.activeBook.transactions.find(t => t.id === id);
+                    if (!tx) return;
+                    this.editTransaction(tx);
+                },
+
+                deleteSelectedTransactions() {
+                    const book = this.activeBook;
+                    if (!book || this.selectedTransactions.length === 0) return;
+                    if (!confirm(`Delete ${this.selectedTransactions.length} selected transaction(s)?`)) return;
+
+                    const toDelete = book.transactions.filter(t => this.selectedTransactions.includes(t.id));
+                    toDelete.forEach(tx => {
+                        this.trash.transactions.push({
+                            id: tx.id,
+                            data: { ...tx },
+                            bookId: this.activeBookId,
+                            deletedAt: Date.now()
+                        });
+                    });
+
+                    book.transactions = book.transactions.filter(t => !this.selectedTransactions.includes(t.id));
+                    this.selectedTransactions = [];
+                    this.save();
                 },
 
                 createBusiness() {
