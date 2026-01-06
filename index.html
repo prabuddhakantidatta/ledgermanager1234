@@ -19,8 +19,7 @@
         .transaction-row:hover { box-shadow: inset 1px 0 0 #dadce0, inset -1px 0 0 #dadce0, 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15); z-index: 10; cursor: pointer; }
         .dropdown-menu { position: relative; }
         .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 50; min-width: 160px; }
-        .dropdown-menu:hover .dropdown-content { display: block; }
-        .dropdown-item { padding: 8px 16px; cursor: pointer; transition: background 0.2s; }
+        .dropdown-item { padding: 8px 16px; cursor: pointer; transition: background 0.2s; font-size: 0.875rem; }
         .dropdown-item:hover { background: #f1f3f4; }
     </style>
 </head>
@@ -104,19 +103,19 @@
                     <div class="text-xs text-gray-500 uppercase font-bold tracking-wider">Business Total</div>
                     <div class="text-lg font-bold" :class="businessTotal >= 0 ? 'text-green-600' : 'text-red-600'" x-text="formatCurrency(businessTotal)"></div>
                 </div>
-                <div class="relative dropdown-menu">
-                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold cursor-pointer">
+                <div class="relative dropdown-menu" x-data="{open:false}">
+                    <button class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold cursor-pointer" @click="open = !open">
                         <span x-text="user ? user.email.charAt(0).toUpperCase() : 'U'"></span>
-                    </div>
-                    <div class="dropdown-content">
+                    </button>
+                    <div class="dropdown-content" x-show="open" x-cloak @click.outside="open = false" x-transition>
                         <div class="px-4 py-2 border-b text-sm text-gray-600" x-text="user ? user.email : ''"></div>
-                        <div @click="showChangePasswordModal = true" class="dropdown-item">
+                        <div @click="showChangePasswordModal = true; open = false" class="dropdown-item">
                             <i class="fas fa-key mr-2"></i> Change Password
                         </div>
-                        <div @click="showDeleteAccountModal = true" class="dropdown-item text-red-600">
+                        <div @click="showDeleteAccountModal = true; open = false" class="dropdown-item text-red-600">
                             <i class="fas fa-user-times mr-2"></i> Delete Account
                         </div>
-                        <div @click="logout()" class="dropdown-item">
+                        <div @click="logout(); open = false" class="dropdown-item">
                             <i class="fas fa-sign-out-alt mr-2"></i> Logout
                         </div>
                     </div>
@@ -154,15 +153,15 @@
                                     <i class="fas fa-briefcase flex-shrink-0" :class="activeBusinessId === business.id ? 'text-blue-600' : 'text-gray-600'"></i>
                                     <span class="truncate font-semibold" x-text="business.name"></span>
                                 </div>
-                                <div class="relative dropdown-menu flex-shrink-0">
-                                    <button @click.stop class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-1">
+                                <div class="relative dropdown-menu flex-shrink-0" x-data="{open:false}">
+                                    <button @click.stop="open = !open" class="text-gray-400 hover:text-gray-600 p-1">
                                         <i class="fas fa-ellipsis-v"></i>
                                     </button>
-                                    <div class="dropdown-content">
-                                        <div @click.stop="startEditingBusiness(business.id, business.name)" class="dropdown-item">
+                                    <div class="dropdown-content" x-show="open" x-cloak @click.outside="open = false" x-transition>
+                                        <div @click.stop="startEditingBusiness(business.id, business.name); open = false" class="dropdown-item">
                                             <i class="fas fa-edit mr-2"></i> Rename
                                         </div>
-                                        <div @click.stop="confirmDeleteBusiness(business.id)" class="dropdown-item text-red-600">
+                                        <div @click.stop="confirmDeleteBusiness(business.id); open = false" class="dropdown-item text-red-600">
                                             <i class="fas fa-trash mr-2"></i> Delete
                                         </div>
                                     </div>
@@ -180,21 +179,21 @@
                                                 <i class="far fa-calendar-alt flex-shrink-0 text-sm" :class="activeBookId === book.id ? 'text-red-600' : 'text-gray-600'"></i>
                                                 <span class="truncate text-sm" x-text="book.name"></span>
                                             </div>
-                                            <div class="relative dropdown-menu flex-shrink-0">
-                                                <button @click.stop class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-1">
+                                            <div class="relative dropdown-menu flex-shrink-0" x-data="{open:false}">
+                                                <button @click.stop="open = !open" class="text-gray-400 hover:text-gray-600 p-1">
                                                     <i class="fas fa-ellipsis-v text-xs"></i>
                                                 </button>
-                                                <div class="dropdown-content">
-                                                    <div @click.stop="startEditingBook(book.id, book.name)" class="dropdown-item">
+                                                <div class="dropdown-content" x-show="open" x-cloak @click.outside="open = false" x-transition>
+                                                    <div @click.stop="startEditingBook(book.id, book.name); open = false" class="dropdown-item">
                                                         <i class="fas fa-edit mr-2"></i> Rename
                                                     </div>
-                                                    <div @click.stop="copyBook(book.id)" class="dropdown-item">
+                                                    <div @click.stop="copyBook(book.id); open = false" class="dropdown-item">
                                                         <i class="fas fa-copy mr-2"></i> Copy
                                                     </div>
-                                                    <div @click.stop="moveBook(book.id)" class="dropdown-item">
+                                                    <div @click.stop="moveBook(book.id); open = false" class="dropdown-item">
                                                         <i class="fas fa-arrow-right mr-2"></i> Move
                                                     </div>
-                                                    <div @click.stop="confirmDeleteBook(book.id)" class="dropdown-item text-red-600">
+                                                    <div @click.stop="confirmDeleteBook(book.id); open = false" class="dropdown-item text-red-600">
                                                         <i class="fas fa-trash mr-2"></i> Delete
                                                     </div>
                                                 </div>
@@ -268,30 +267,9 @@
             <main class="flex-1 bg-white md:rounded-tl-2xl border-l border-t border-gray-200 overflow-hidden flex flex-col">
                 <!-- Top Controls & Summary -->
                 <div class="border-b border-gray-100 px-4 py-4 space-y-4">
-                    <!-- Selection & Actions Row -->
-                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <template x-if="selectedTransactions.length > 0">
-                                <div class="flex items-center gap-2 text-sm">
-                                    <span class="text-gray-600" x-text="`${selectedTransactions.length} selected`"></span>
-                                    <button @click="editSelectedTransaction()" class="px-3 py-1.5 bg-gray-800 text-white rounded text-sm font-medium hover:bg-black transition-colors">
-                                        <i class="fas fa-edit mr-1"></i> Edit
-                                    </button>
-                                    <button @click="showCopyTxModal = true" class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded text-sm font-medium hover:bg-blue-100 transition-colors">
-                                        <i class="fas fa-copy mr-1"></i> Copy
-                                    </button>
-                                    <button @click="showMoveTxModal = true" class="px-3 py-1.5 bg-orange-50 text-orange-600 rounded text-sm font-medium hover:bg-orange-100 transition-colors">
-                                        <i class="fas fa-arrow-right mr-1"></i> Move
-                                    </button>
-                                    <button @click="deleteSelectedTransactions()" class="px-3 py-1.5 bg-red-50 text-red-600 rounded text-sm font-medium hover:bg-red-100 transition-colors">
-                                        <i class="fas fa-trash mr-1"></i> Delete
-                                    </button>
-                                    <button @click="selectedTransactions = []" class="px-3 py-1.5 text-gray-600 rounded text-sm hover:bg-gray-100">
-                                        Clear
-                                    </button>
-                                </div>
-                            </template>
-                        </div>
+                    <!-- Actions Row -->
+                    <div class="flex items-center justify-between">
+                        <div></div>
                         <div class="flex items-center gap-2 justify-end">
                             <button @click="exportToPDF()" class="hidden sm:inline-flex items-center bg-purple-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
                                 <i class="fas fa-file-pdf mr-1"></i> Export PDF
@@ -313,7 +291,7 @@
                             </div>
                             <button @click="openTransactionModal('credit')" class="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-600 text-white text-xs font-semibold hover:bg-green-700">
                                 <i class="fas fa-plus"></i>
-                                Add
+                                Cash In
                             </button>
                         </div>
 
@@ -329,7 +307,7 @@
                             </div>
                             <button @click="openTransactionModal('debit')" class="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-600 text-white text-xs font-semibold hover:bg-red-700">
                                 <i class="fas fa-minus"></i>
-                                Add
+                                Cash Out
                             </button>
                         </div>
 
@@ -400,9 +378,6 @@
                             <table class="min-w-full text-xs sm:text-sm">
                                 <thead class="bg-gray-50 border-b border-gray-200">
                                     <tr class="text-left text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                        <th class="px-3 py-2 w-10 text-center">
-                                            <input type="checkbox" @change="toggleSelectAll($event)" class="rounded border-gray-300">
-                                        </th>
                                         <th class="px-3 py-2 whitespace-nowrap">Date &amp; Time</th>
                                         <th class="px-3 py-2 whitespace-nowrap">Details</th>
                                         <th class="px-3 py-2 whitespace-nowrap">Category</th>
@@ -410,12 +385,13 @@
                                         <th class="px-3 py-2 whitespace-nowrap text-center">Bill</th>
                                         <th class="px-3 py-2 whitespace-nowrap text-right">Amount</th>
                                         <th class="px-3 py-2 whitespace-nowrap text-right">Balance</th>
+                                        <th class="px-3 py-2 whitespace-nowrap text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <template x-if="cashViewTransactions.length === 0">
                                         <tr>
-                                            <td colspan="9" class="px-3 py-8 text-center text-gray-500 text-sm">
+                                            <td colspan="8" class="px-3 py-8 text-center text-gray-500 text-sm">
                                                 <i class="fas fa-inbox text-4xl mb-2 block opacity-20"></i>
                                                 No transactions found for the selected filters.
                                             </td>
@@ -424,9 +400,6 @@
 
                                     <template x-for="tx in cashViewTransactions" :key="tx.id">
                                         <tr class="border-b last:border-0 border-gray-100 hover:bg-gray-50 transition-colors">
-                                            <td class="px-3 py-2 text-center align-middle">
-                                                <input type="checkbox" class="rounded border-gray-300" :value="tx.id" x-model="selectedTransactions">
-                                            </td>
                                             <td class="px-3 py-2 align-middle whitespace-nowrap text-gray-700 text-xs sm:text-sm" x-text="formatDateTime(tx.date, tx.time)"></td>
                                             <td class="px-3 py-2 align-middle">
                                                 <div class="text-gray-900 font-medium text-xs sm:text-sm" x-text="tx.description"></div>
@@ -447,6 +420,27 @@
                                             </td>
                                             <td class="px-3 py-2 align-middle text-right whitespace-nowrap">
                                                 <span class="font-semibold" :class="tx._balance >= 0 ? 'text-green-600' : 'text-red-600'" x-text="formatCurrency(tx._balance)"></span>
+                                            </td>
+                                            <td class="px-3 py-2 align-middle text-right whitespace-nowrap">
+                                                <div class="relative dropdown-menu inline-block" x-data="{open:false}">
+                                                    <button @click.stop="open = !open" class="text-gray-400 hover:text-gray-600 p-1">
+                                                        <i class="fas fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <div class="dropdown-content" x-show="open" x-cloak @click.outside="open = false" x-transition>
+                                                        <div @click.stop="editTransaction(tx); open = false" class="dropdown-item">
+                                                            <i class="fas fa-edit mr-2"></i> Edit
+                                                        </div>
+                                                        <div @click.stop="copyTransaction(tx); open = false" class="dropdown-item">
+                                                            <i class="fas fa-copy mr-2"></i> Copy
+                                                        </div>
+                                                        <div @click.stop="moveTransaction(tx); open = false" class="dropdown-item">
+                                                            <i class="fas fa-arrow-right mr-2"></i> Move
+                                                        </div>
+                                                        <div @click.stop="deleteTransaction(tx.id); open = false" class="dropdown-item text-red-600">
+                                                            <i class="fas fa-trash mr-2"></i> Delete
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     </template>
@@ -1198,38 +1192,6 @@
                     alert(`${txsToMove.length} transaction(s) moved!`);
                 },
 
-                editSelectedTransaction() {
-                    if (!this.activeBook || this.selectedTransactions.length === 0) return;
-                    if (this.selectedTransactions.length > 1) {
-                        alert('Please select only one transaction to edit.');
-                        return;
-                    }
-                    const id = this.selectedTransactions[0];
-                    const tx = this.activeBook.transactions.find(t => t.id === id);
-                    if (!tx) return;
-                    this.editTransaction(tx);
-                },
-
-                deleteSelectedTransactions() {
-                    const book = this.activeBook;
-                    if (!book || this.selectedTransactions.length === 0) return;
-                    if (!confirm(`Delete ${this.selectedTransactions.length} selected transaction(s)?`)) return;
-
-                    const toDelete = book.transactions.filter(t => this.selectedTransactions.includes(t.id));
-                    toDelete.forEach(tx => {
-                        this.trash.transactions.push({
-                            id: tx.id,
-                            data: { ...tx },
-                            bookId: this.activeBookId,
-                            deletedAt: Date.now()
-                        });
-                    });
-
-                    book.transactions = book.transactions.filter(t => !this.selectedTransactions.includes(t.id));
-                    this.selectedTransactions = [];
-                    this.save();
-                },
-
                 createBusiness() {
                     if (!this.newBusinessName.trim()) return;
                     const newBusiness = {
@@ -1435,13 +1397,6 @@
                     this.showMoveBookModal = false;
                     this.save();
                     alert(`Book moved to ${targetBusiness.name}!`);
-                },
-
-                // Selection helper for table header checkbox
-                toggleSelectAll(event) {
-                    const checked = event.target.checked;
-                    const ids = this.cashViewTransactions.map(tx => tx.id);
-                    this.selectedTransactions = checked ? ids : [];
                 },
 
                 formatDateHeader(dateStr) {
